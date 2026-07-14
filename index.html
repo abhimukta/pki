@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PKI Toolkit — Free Browser-Based Certificate Tools</title>
+    <meta name="description" content="Free, vendor-neutral browser tools for PKI practitioners: validate certificates against CSRs, decode CSRs and certificates, validate certificate chains, generate CSRs with OpenSSL, convert certificate formats, and learn PKI basics. Nothing ever leaves your browser." />
+    <style>
+      :root {
+        color-scheme: light;
+        --navy-900: #0a1a30;
+        --navy-800: #10233d;
+        --navy-700: #17325a;
+        --gold-600: #a97f22;
+        --gold-500: #c69a3b;
+        --gold-300: #e6cd8a;
+        --cream-100: #f6f1e4;
+        --cream-50: #fffdf8;
+        --ink: #16233a;
+        --muted: #5c6b80;
+        --border: #e2d9bf;
+        --border-soft: #dfe3ea;
+        --shadow: 0 20px 45px rgba(10, 26, 48, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--cream-100) 0%, var(--cream-50) 420px);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+      }
+
+      .topbar {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 16px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        border-bottom: 3px solid var(--gold-500);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .wordmark .mono {
+        color: var(--gold-300);
+        font-weight: 700;
+      }
+
+      .toolnav {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .toolnav a {
+        color: rgba(246, 241, 228, 0.78);
+        text-decoration: none;
+        font-size: 0.92rem;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .toolnav a:hover, .toolnav a:focus-visible {
+        color: var(--cream-50);
+      }
+
+      .toolnav a.active {
+        color: var(--gold-300);
+        border-bottom-color: var(--gold-500);
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--navy-900), var(--navy-700) 75%);
+        color: var(--cream-50);
+        border-radius: 18px;
+        padding: 40px 38px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--navy-800);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-300);
+        margin-bottom: 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.9rem, 3.2vw, 2.6rem);
+        color: var(--cream-50);
+      }
+
+      .hero p {
+        margin: 0 0 18px;
+        max-width: 720px;
+        font-size: 1.05rem;
+        color: rgba(246, 241, 228, 0.88);
+      }
+
+      .privacy-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--navy-900);
+        background: var(--gold-300);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+
+      .tools-heading {
+        margin: 40px 0 6px;
+        color: var(--navy-900);
+        font-size: 1.4rem;
+      }
+
+      .tools-subheading {
+        margin: 0 0 18px;
+        color: var(--muted);
+      }
+
+      .tool-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .tool-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+        text-decoration: none;
+        color: inherit;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+      }
+
+      .tool-card:hover, .tool-card:focus-visible {
+        transform: translateY(-3px);
+        box-shadow: 0 24px 50px rgba(10, 26, 48, 0.22);
+      }
+
+      .tool-card .pill {
+        display: inline-block;
+        align-self: flex-start;
+        margin-bottom: 10px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .tool-card h3 {
+        margin: 0 0 8px;
+        color: var(--navy-900);
+        font-size: 1.15rem;
+      }
+
+      .tool-card p {
+        margin: 0;
+        color: var(--muted);
+        flex-grow: 1;
+      }
+
+      .tool-card .open-link {
+        margin-top: 16px;
+        font-weight: 700;
+        color: var(--gold-600);
+        font-size: 0.92rem;
+      }
+
+      .guide {
+        display: grid;
+        gap: 16px;
+        margin-top: 40px;
+      }
+
+      .guide-card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .guide-card p { color: var(--muted); margin-bottom: 0; }
+
+      .pill {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .site-footer {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      .site-footer strong { color: var(--navy-800); }
+
+      .about-section {
+        margin-top: 40px;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 30px 32px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        align-items: flex-start;
+      }
+
+      .about-section h2 {
+        margin: 0;
+        color: var(--navy-900);
+        font-size: 1.3rem;
+      }
+
+      .about-section p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 760px;
+      }
+
+      .linkedin-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+        color: var(--navy-900);
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 10px 22px rgba(169, 127, 34, 0.3);
+        transition: transform 150ms ease;
+      }
+
+      .linkedin-link:hover, .linkedin-link:focus-visible {
+        transform: translateY(-1px);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wordmark"><span class="mono">PKI</span> Toolkit</div>
+      <nav class="toolnav" aria-label="Toolkit pages">
+        <a href="index.html" class="active" aria-current="page">Home</a>
+        <a href="cert-csr-validator.html">Validator</a>
+        <a href="csr-decoder.html">CSR Decoder</a>
+        <a href="cert-decoder.html">Cert Decoder</a>
+        <a href="cert-chain-validator.html">Chain Validator</a>
+        <a href="csr-generator.html">CSR Generator</a>
+        <a href="cert-converter.html">Converter</a>
+        <a href="faq.html">FAQ</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">PKI Toolkit</span>
+        <h1>Free, vendor-neutral browser tools for PKI practitioners</h1>
+        <p>
+          Everyday certificate work — checking a key pair, decoding a CSR, generating a new request, or
+          converting a file format — without an account, a backend, or a reason to trust anyone else with
+          your certificates and keys.
+        </p>
+        <span class="privacy-note">Every tool below runs entirely in your browser — nothing you paste or upload is ever sent anywhere</span>
+      </section>
+
+      <h2 class="tools-heading">Choose a tool</h2>
+      <p class="tools-subheading">Each tool is a single, self-contained page focused on one task.</p>
+
+      <div class="tool-grid">
+        <a class="tool-card" href="cert-csr-validator.html">
+          <span class="pill">Validator</span>
+          <h3>Certificate &amp; CSR Validator</h3>
+          <p>Check whether a TLS certificate and a CSR share the same key pair, and see both side by side.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="csr-decoder.html">
+          <span class="pill">Decoder</span>
+          <h3>CSR Decoder</h3>
+          <p>Paste or upload a CSR to see its subject, public key, signature algorithm, and requested SANs.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="cert-decoder.html">
+          <span class="pill">Decoder</span>
+          <h3>Certificate Decoder</h3>
+          <p>Decode an issued certificate: subject, issuer, expiry countdown, SANs, and key usage at a glance.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="cert-chain-validator.html">
+          <span class="pill">Chain</span>
+          <h3>Certificate Chain Validator</h3>
+          <p>Paste a leaf certificate plus its intermediates and root, and verify every signature resolves up to a trusted root.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="csr-generator.html">
+          <span class="pill">Generator</span>
+          <h3>CSR Generator</h3>
+          <p>Fill in your certificate details and get an OpenSSL command to run on your own server — no key ever touches this page.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="cert-converter.html">
+          <span class="pill">Converter</span>
+          <h3>Certificate Format Converter</h3>
+          <p>Convert a certificate between PEM and DER, with a summary of what you're converting first.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+
+        <a class="tool-card" href="faq.html">
+          <span class="pill">Reference</span>
+          <h3>PKI &amp; Private Key Security FAQ</h3>
+          <p>Plain-English answers about CSRs, certificate chains, and how to keep private keys safe.</p>
+          <span class="open-link">Open tool &rarr;</span>
+        </a>
+      </div>
+
+      <section class="guide">
+        <div class="guide-card">
+          <span class="pill">Why this exists</span>
+          <h3>Certificate work shouldn't require trusting a stranger's server</h3>
+          <p>
+            Certificates and CSRs contain identifying details, and generating either one starts with a
+            private key that should never leave the machine that created it. These tools exist so you can
+            do routine PKI checks without uploading anything to a backend you can't see.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">How it works</span>
+          <h3>Static pages, no server, no accounts</h3>
+          <p>
+            Every page on this site is a single, self-contained HTML file that runs entirely client-side.
+            There's nothing to sign up for and nothing to configure — paste your data, get your answer,
+            and close the tab.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">Who it's for</span>
+          <h3>Developers, administrators, and curious non-experts alike</h3>
+          <p>
+            Whether you manage certificates daily or are troubleshooting one for the first time, each tool
+            page explains what it's showing you in plain language, not just cryptographic jargon.
+          </p>
+        </div>
+      </section>
+
+      <section class="about-section">
+        <span class="pill">About the creator</span>
+        <h2>Abhimukta Banerjee</h2>
+        <p>
+          Abhimukta Banerjee is a lifelong technologist, cybersecurity practitioner, and PKI enthusiast
+          with over 25 years of experience building and operating secure enterprise platforms. As a VP
+        of IAM and PKI Platform Operations at a Fortune 500 financial institution, he works at the
+          intersection of identity, certificates, access control, compliance, and cloud security. He
+          launched PKI Toolkit to share the kinds of practical tools he wished he had throughout his
+          career — simple, private, browser-based utilities that make certificate and TLS-related tasks
+          easier for engineers, administrators, and security teams.
+        </p>
+        <a class="linkedin-link" href="https://linkedin.com/in/abhimukta" target="_blank" rel="noopener noreferrer">Connect on LinkedIn &rarr;</a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>PKI Toolkit</strong> is a free, vendor-neutral set of certificate tools. Everything runs
+      client-side in your browser — certificates, CSRs, and certificate details you paste or upload are
+      never sent to a server or stored anywhere.</p>
+    </footer>
+  </body>
+</html>

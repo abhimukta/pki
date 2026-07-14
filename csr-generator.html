@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSR Generator — OpenSSL Command Builder</title>
+    <meta name="description" content="Build a one-line OpenSSL command to generate a private key and CSR on your own server. Nothing is generated in the browser — the private key never leaves your machine." />
+    <style>
+      :root {
+        color-scheme: light;
+        --navy-900: #0a1a30;
+        --navy-800: #10233d;
+        --navy-700: #17325a;
+        --gold-600: #a97f22;
+        --gold-500: #c69a3b;
+        --gold-300: #e6cd8a;
+        --cream-100: #f6f1e4;
+        --cream-50: #fffdf8;
+        --ink: #16233a;
+        --muted: #5c6b80;
+        --border: #e2d9bf;
+        --border-soft: #dfe3ea;
+        --success: #2f6f4e;
+        --success-bg: #eef5ee;
+        --warning: #8a3a2b;
+        --warning-bg: #f8ece8;
+        --shadow: 0 20px 45px rgba(10, 26, 48, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--cream-100) 0%, var(--cream-50) 420px);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+      }
+
+      .topbar {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 16px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        border-bottom: 3px solid var(--gold-500);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .wordmark .mono {
+        color: var(--gold-300);
+        font-weight: 700;
+      }
+
+      .toolnav {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .toolnav a {
+        color: rgba(246, 241, 228, 0.78);
+        text-decoration: none;
+        font-size: 0.92rem;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .toolnav a:hover, .toolnav a:focus-visible {
+        color: var(--cream-50);
+      }
+
+      .toolnav a.active {
+        color: var(--gold-300);
+        border-bottom-color: var(--gold-500);
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--navy-900), var(--navy-700) 75%);
+        color: var(--cream-50);
+        border-radius: 18px;
+        padding: 36px 38px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--navy-800);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-300);
+        margin-bottom: 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+        color: var(--cream-50);
+      }
+
+      .hero p {
+        margin: 0 0 18px;
+        max-width: 700px;
+        font-size: 1.02rem;
+        color: rgba(246, 241, 228, 0.88);
+      }
+
+      .privacy-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--navy-900);
+        background: var(--gold-300);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+
+      .warning-banner {
+        margin-top: 26px;
+        background: var(--warning-bg);
+        border: 1px solid var(--warning);
+        border-left: 5px solid var(--warning);
+        border-radius: 14px;
+        padding: 20px 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .warning-banner h2 {
+        margin: 0 0 8px;
+        color: var(--warning);
+        font-size: 1.15rem;
+      }
+
+      .warning-banner p {
+        margin: 0;
+        color: var(--ink);
+      }
+
+      .warning-banner p + p {
+        margin-top: 10px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 22px;
+        margin-top: 26px;
+      }
+
+      .panel {
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 26px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2, .panel h3 {
+        margin-top: 0;
+        color: var(--navy-900);
+      }
+
+      .panel > p { color: var(--muted); }
+
+      .form-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-grid .span-2 { grid-column: 1 / -1; }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      label {
+        font-weight: 600;
+        color: var(--navy-800);
+      }
+
+      input[type="text"], select, textarea {
+        width: 100%;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font: inherit;
+        background: #fbfaf5;
+        color: var(--ink);
+      }
+
+      select { cursor: pointer; }
+
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+        font-size: 0.85rem;
+      }
+
+      #commandOutput {
+        min-height: 140px;
+      }
+
+      input:focus, select:focus, textarea:focus, button:focus-visible {
+        outline: 3px solid var(--gold-500);
+        outline-offset: 2px;
+      }
+
+      .helper {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      .checkbox-field {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .checkbox-field input { width: auto; margin-top: 4px; }
+      .checkbox-field label { font-weight: 600; }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 22px;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 22px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+        font-family: inherit;
+      }
+
+      button:hover { transform: translateY(-1px); }
+
+      .primary {
+        background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+        color: var(--navy-900);
+        box-shadow: 0 10px 22px rgba(169, 127, 34, 0.3);
+      }
+
+      .secondary {
+        background: transparent;
+        color: var(--navy-800);
+        border: 1.5px solid var(--navy-700);
+      }
+
+      .result-card {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fbfaf5;
+      }
+
+      .status-match {
+        border-left: 4px solid var(--success);
+        background: var(--success-bg);
+      }
+
+      .status-mismatch {
+        border-left: 4px solid var(--warning);
+        background: var(--warning-bg);
+      }
+
+      .status-pending {
+        border-left: 4px solid var(--navy-700);
+        background: #f1f4f9;
+      }
+
+      .output-block {
+        margin-top: 18px;
+      }
+
+      .output-block h3 {
+        font-size: 1rem;
+        margin-bottom: 8px;
+      }
+
+      .explain-list {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+
+      .explain-list li { margin-bottom: 6px; }
+      .explain-list code, .helper code, .os-card code {
+        background: rgba(23, 50, 90, 0.08);
+        color: var(--navy-800);
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+        font-size: 0.85em;
+      }
+
+      .os-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 16px;
+      }
+
+      .os-card {
+        background: #fbfaf5;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .os-card h4 {
+        margin: 0 0 8px;
+        color: var(--navy-800);
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      .os-card pre {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 10px 12px;
+        border-radius: 10px;
+        overflow-x: auto;
+        font-size: 0.82rem;
+        margin: 8px 0;
+      }
+
+      .os-card p { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+
+      .guide {
+        display: grid;
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .guide-card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .guide-card p { color: var(--muted); margin-bottom: 0; }
+
+      .pill {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .site-footer {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      .site-footer strong { color: var(--navy-800); }
+
+      [hidden] { display: none !important; }
+
+      @media (max-width: 860px) {
+        .form-grid, .os-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wordmark"><span class="mono">PKI</span> Toolkit</div>
+      <nav class="toolnav" aria-label="Toolkit pages">
+        <a href="index.html">Home</a>
+        <a href="cert-csr-validator.html">Validator</a>
+        <a href="csr-decoder.html">CSR Decoder</a>
+        <a href="cert-decoder.html">Cert Decoder</a>
+        <a href="cert-chain-validator.html">Chain Validator</a>
+        <a href="csr-generator.html" class="active" aria-current="page">CSR Generator</a>
+        <a href="cert-converter.html">Converter</a>
+        <a href="faq.html">FAQ</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">CSR Generator</span>
+        <h1>Build an OpenSSL command to generate your CSR — on your own server</h1>
+        <p>
+          Fill in your certificate details and get a single OpenSSL command back. Run it on the server
+          (or workstation) that will hold the certificate, and it creates a new private key and CSR
+          together, right there — nothing is generated on this page.
+        </p>
+        <span class="privacy-note">This page only builds command text — no key or CSR is ever generated in your browser</span>
+      </section>
+
+      <section class="warning-banner">
+        <h2>Do not use a web-based CSR generator</h2>
+        <p>
+          Creating a CSR always means creating a private key first, and that key must never leave the
+          machine that generated it. A website that offers to "generate your CSR" for you has to generate
+          that private key somewhere — on its own servers, or in a browser tab you can't fully audit —
+          which means a key that should be yours alone may be retained, logged, or cached by a site you
+          don't control.
+        </p>
+        <p>
+          This tool only produces the command below as text. Copy it and run it yourself with OpenSSL, so
+          the private key is generated, and stays, on your own infrastructure.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Certificate details</h2>
+          <p>Only the Common Name is required — everything else is optional but recommended by most CAs.</p>
+
+          <div class="form-grid">
+            <div class="field span-2">
+              <label for="cnField">Common Name (CN) — e.g. www.example.com</label>
+              <input type="text" id="cnField" placeholder="www.example.com" />
+            </div>
+            <div class="field">
+              <label for="oField">Organization (O)</label>
+              <input type="text" id="oField" placeholder="Example Corp" />
+            </div>
+            <div class="field">
+              <label for="ouField">Organizational Unit (OU)</label>
+              <input type="text" id="ouField" placeholder="IT Operations" />
+            </div>
+            <div class="field">
+              <label for="lField">City / Locality (L)</label>
+              <input type="text" id="lField" placeholder="San Francisco" />
+            </div>
+            <div class="field">
+              <label for="stField">State / Province (ST)</label>
+              <input type="text" id="stField" placeholder="California" />
+            </div>
+            <div class="field">
+              <label for="cField">Country (C) — 2-letter code</label>
+              <input type="text" id="cField" placeholder="US" maxlength="2" />
+            </div>
+            <div class="field">
+              <label for="fileBaseField">Output file name (optional)</label>
+              <input type="text" id="fileBaseField" placeholder="auto-generated from Common Name" />
+            </div>
+            <div class="field span-2">
+              <label for="sanField">Subject Alternative Names (SANs)</label>
+              <textarea id="sanField" placeholder="example.com, www.example.com, 192.0.2.10"></textarea>
+              <div class="helper">Comma-separated hostnames and/or IP addresses. Most CAs now require the CN to also appear here.</div>
+            </div>
+            <div class="field">
+              <label for="keyTypeField">Key type</label>
+              <select id="keyTypeField">
+                <option value="rsa2048">RSA 2048-bit (widely compatible)</option>
+                <option value="rsa3072">RSA 3072-bit</option>
+                <option value="rsa4096">RSA 4096-bit</option>
+                <option value="ec256">ECDSA P-256 (smaller, faster)</option>
+                <option value="ec384">ECDSA P-384</option>
+              </select>
+              <div class="helper">ECDSA options require OpenSSL 1.1.1 or newer — run <code>openssl version</code> to check.</div>
+            </div>
+            <div class="field checkbox-field span-2">
+              <input type="checkbox" id="passphraseField" />
+              <label for="passphraseField">Protect the private key with a passphrase (omits <code>-nodes</code>; OpenSSL will prompt you interactively — the passphrase is never embedded in the command)</label>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="primary" id="generateBtn" type="button">Generate CSR OpenSSL command</button>
+            <button class="secondary" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <div id="results" class="result-card status-pending" role="status" aria-live="polite">
+            <strong>Ready to build</strong>
+            <div>Enter at least a Common Name and press Generate.</div>
+          </div>
+
+          <div id="commandBlock" class="output-block" hidden>
+            <h3>Run this on your server</h3>
+            <textarea id="commandOutput" readonly aria-label="Generated OpenSSL command"></textarea>
+            <div class="actions">
+              <button class="secondary" id="copyCommandBtn" type="button">Copy command</button>
+            </div>
+            <p class="helper" style="margin-top: 10px;">
+              On Windows Git Bash, the <code>-subj</code> value can get silently rewritten into a file
+              path — the <code>MSYS_NO_PATHCONV=1</code> prefix above prevents that. It's safe to leave in
+              on Linux, macOS, and PowerShell.
+            </p>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h3>What this command does</h3>
+          <p>Every flag in the generated command, in plain English:</p>
+          <ul class="explain-list">
+            <li><code>MSYS_NO_PATHCONV=1</code> — only matters on Windows Git Bash. It stops Git Bash from "helpfully" rewriting <code>-subj "/C=.../CN=..."</code> into a Windows file path, which otherwise breaks the command. It's a harmless no-op on Linux, macOS, and PowerShell.</li>
+            <li><code>openssl req -new</code> — start building a new certificate request.</li>
+            <li><code>-newkey rsa:2048</code> (or an ECDSA equivalent) — generate a brand-new private key at the same time.</li>
+            <li><code>-nodes</code> — store the key without a passphrase, so a server process can read it without asking. Omit this (checkbox above) if you'll enter a passphrase by hand.</li>
+            <li><code>-keyout server.key</code> — the file your new private key is written to. Keep this file private and restrict who can read it.</li>
+            <li><code>-out server.csr</code> — the file your CSR is written to. This is the file you send to your Certificate Authority.</li>
+            <li><code>-subj "/C=.../CN=..."</code> — fills in your identity fields without an interactive prompt.</li>
+            <li><code>-addext "subjectAltName=..."</code> — lists every additional hostname or IP this certificate should cover. Requires OpenSSL 1.1.1 or newer.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="panel" style="margin-top: 22px;">
+        <h2>Installing OpenSSL</h2>
+        <p>Most Linux and macOS systems already have OpenSSL installed. Check first with <code>openssl version</code>.</p>
+        <div class="os-grid">
+          <div class="os-card">
+            <h4>Linux (Debian / Ubuntu)</h4>
+            <pre>sudo apt update
+sudo apt install -y openssl</pre>
+            <p>Fedora / RHEL / CentOS: <code>sudo dnf install -y openssl</code></p>
+          </div>
+          <div class="os-card">
+            <h4>macOS</h4>
+            <pre>brew install openssl@3</pre>
+            <p>macOS ships with LibreSSL by default; Homebrew's OpenSSL 3 is closer to what most servers run and supports every flag on this page.</p>
+          </div>
+          <div class="os-card">
+            <h4>Windows</h4>
+            <pre>winget install ShiningLight.OpenSSL</pre>
+            <p>Alternatively, install <a href="https://git-scm.com/downloads" target="_blank" rel="noopener noreferrer">Git for Windows</a>, which bundles OpenSSL and adds it to "Git Bash".</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide">
+        <div class="guide-card">
+          <span class="pill">Why generate it yourself</span>
+          <h3>The private key is the whole point</h3>
+          <p>
+            A certificate is only as trustworthy as the private key behind it. Generating the key and CSR
+            together, locally, with OpenSSL, means the key is created exactly once, in exactly one place —
+            the server that will use it — with no copy ever transiting a third-party website.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">Next step</span>
+          <h3>Check your work before submitting</h3>
+          <p>
+            Once OpenSSL creates your <code>.csr</code> file, paste its contents into the
+            <a href="csr-decoder.html">CSR Decoder</a> to confirm the subject and SANs are exactly right
+            before you send it to your CA.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">After the CA responds</span>
+          <h3>Confirm the certificate matches</h3>
+          <p>
+            When your CA returns a signed certificate, run it through the
+            <a href="cert-csr-validator.html">Certificate &amp; CSR Validator</a> alongside this CSR to
+            confirm they share the same key pair.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>PKI Toolkit</strong> is a free, vendor-neutral set of certificate tools. This page only
+      builds a command for you to run yourself — no certificate, key, or CSR data is ever sent anywhere
+      or generated in your browser.</p>
+    </footer>
+
+    <script>
+      const cnField = document.getElementById('cnField');
+      const oField = document.getElementById('oField');
+      const ouField = document.getElementById('ouField');
+      const lField = document.getElementById('lField');
+      const stField = document.getElementById('stField');
+      const cField = document.getElementById('cField');
+      const fileBaseField = document.getElementById('fileBaseField');
+      const sanField = document.getElementById('sanField');
+      const keyTypeField = document.getElementById('keyTypeField');
+      const passphraseField = document.getElementById('passphraseField');
+      const results = document.getElementById('results');
+      const commandBlock = document.getElementById('commandBlock');
+      const commandOutput = document.getElementById('commandOutput');
+
+      function setPending(message) {
+        results.className = 'result-card status-pending';
+        results.innerHTML = `<strong>Ready to build</strong><div>${message}</div>`;
+      }
+
+      function setOk(message) {
+        results.className = 'result-card status-match';
+        results.innerHTML = `<strong>Command generated</strong><div>${message}</div>`;
+      }
+
+      function setError(message) {
+        results.className = 'result-card status-mismatch';
+        results.innerHTML = `<strong>Can't generate a command yet</strong><div>${message}</div>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (ch) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+      }
+
+      function slugify(value) {
+        const slug = String(value).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return slug || 'server';
+      }
+
+      function shellEscapeDoubleQuoted(value) {
+        return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      }
+
+      function buildSubject() {
+        const fieldOrder = [
+          ['C', cField.value],
+          ['ST', stField.value],
+          ['L', lField.value],
+          ['O', oField.value],
+          ['OU', ouField.value],
+          ['CN', cnField.value]
+        ];
+        return fieldOrder
+          .filter(([, value]) => value && value.trim())
+          .map(([key, value]) => `/${key}=${shellEscapeDoubleQuoted(value.trim())}`)
+          .join('');
+      }
+
+      function parseSans() {
+        return sanField.value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+          .map((entry) => {
+            const isIp = /^[0-9.]+$/.test(entry) || entry.includes(':');
+            return `${isIp ? 'IP' : 'DNS'}:${entry}`;
+          });
+      }
+
+      function newKeyClause() {
+        switch (keyTypeField.value) {
+          case 'rsa3072': return '-newkey rsa:3072';
+          case 'rsa4096': return '-newkey rsa:4096';
+          case 'ec256': return '-newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -pkeyopt ec_param_enc:named_curve';
+          case 'ec384': return '-newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -pkeyopt ec_param_enc:named_curve';
+          case 'rsa2048':
+          default: return '-newkey rsa:2048';
+        }
+      }
+
+      function generate() {
+        const cn = cnField.value.trim();
+        if (!cn) {
+          setError('Please enter a Common Name — it identifies the primary hostname this certificate is for.');
+          commandBlock.hidden = true;
+          return;
+        }
+
+        const country = cField.value.trim();
+        if (country && country.length !== 2) {
+          setError('Country (C) must be exactly 2 letters, e.g. US, GB, IN — or leave it blank.');
+          commandBlock.hidden = true;
+          return;
+        }
+
+        const base = fileBaseField.value.trim() ? slugify(fileBaseField.value) : slugify(cn);
+        const subject = buildSubject();
+        const sans = parseSans();
+        const nodesFlag = passphraseField.checked ? '' : ' -nodes';
+
+        let cmd = `MSYS_NO_PATHCONV=1 openssl req -new ${newKeyClause()}${nodesFlag} \\\n`
+          + `  -keyout ${base}.key \\\n`
+          + `  -out ${base}.csr \\\n`
+          + `  -subj "${subject}"`;
+
+        if (sans.length) {
+          cmd += ` \\\n  -addext "subjectAltName=${sans.join(',')}"`;
+        }
+
+        commandOutput.value = cmd;
+        commandBlock.hidden = false;
+
+        const passphraseNote = passphraseField.checked
+          ? ' OpenSSL will prompt you to set a passphrase interactively when you run it.'
+          : '';
+        setOk(`Copy this command and run it on the server that will use the certificate.${passphraseNote} It writes ${escapeHtml(base)}.key (private — keep it there) and ${escapeHtml(base)}.csr (send this to your CA).`);
+      }
+
+      document.getElementById('generateBtn').addEventListener('click', generate);
+
+      document.getElementById('copyCommandBtn').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(commandOutput.value);
+        } catch (error) {
+          commandOutput.select();
+          document.execCommand('copy');
+        }
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        cnField.value = '';
+        oField.value = '';
+        ouField.value = '';
+        lField.value = '';
+        stField.value = '';
+        cField.value = '';
+        fileBaseField.value = '';
+        sanField.value = '';
+        keyTypeField.value = 'rsa2048';
+        passphraseField.checked = false;
+        commandBlock.hidden = true;
+        setPending('Enter at least a Common Name and press Generate.');
+      });
+    </script>
+  </body>
+</html>

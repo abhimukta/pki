@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PKI, CSR & Private Key Security FAQ</title>
+    <meta name="description" content="Plain-English answers to common questions about certificate signing requests, public key infrastructure, and private key security." />
+    <style>
+      :root {
+        color-scheme: light;
+        --navy-900: #0a1a30;
+        --navy-800: #10233d;
+        --navy-700: #17325a;
+        --gold-600: #a97f22;
+        --gold-500: #c69a3b;
+        --gold-300: #e6cd8a;
+        --cream-100: #f6f1e4;
+        --cream-50: #fffdf8;
+        --ink: #16233a;
+        --muted: #5c6b80;
+        --border: #e2d9bf;
+        --border-soft: #dfe3ea;
+        --shadow: 0 20px 45px rgba(10, 26, 48, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--cream-100) 0%, var(--cream-50) 420px);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+      }
+
+      .topbar {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 16px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        border-bottom: 3px solid var(--gold-500);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .wordmark .mono {
+        color: var(--gold-300);
+        font-weight: 700;
+      }
+
+      .toolnav {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .toolnav a {
+        color: rgba(246, 241, 228, 0.78);
+        text-decoration: none;
+        font-size: 0.92rem;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .toolnav a:hover, .toolnav a:focus-visible {
+        color: var(--cream-50);
+      }
+
+      .toolnav a.active {
+        color: var(--gold-300);
+        border-bottom-color: var(--gold-500);
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--navy-900), var(--navy-700) 75%);
+        color: var(--cream-50);
+        border-radius: 18px;
+        padding: 36px 38px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--navy-800);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-300);
+        margin-bottom: 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+        color: var(--cream-50);
+      }
+
+      .hero p {
+        margin: 0 0 18px;
+        max-width: 700px;
+        font-size: 1.02rem;
+        color: rgba(246, 241, 228, 0.88);
+      }
+
+      .privacy-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--navy-900);
+        background: var(--gold-300);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+
+      .toc {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 28px;
+      }
+
+      .toc a {
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        color: var(--navy-800);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        border-radius: 999px;
+        box-shadow: var(--shadow);
+      }
+
+      .toc a:hover, .toc a:focus-visible {
+        border-color: var(--gold-500);
+        color: var(--gold-600);
+      }
+
+      .faq-section {
+        margin-top: 30px;
+      }
+
+      .faq-section h2 {
+        color: var(--navy-900);
+        font-size: 1.3rem;
+        margin-bottom: 6px;
+        scroll-margin-top: 20px;
+      }
+
+      .faq-section > p {
+        color: var(--muted);
+        margin-top: 0;
+      }
+
+      .faq-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      details {
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 4px 20px;
+        box-shadow: var(--shadow);
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--navy-800);
+        padding: 14px 0;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      summary::-webkit-details-marker { display: none; }
+
+      summary::after {
+        content: "+";
+        color: var(--gold-600);
+        font-size: 1.2rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      details[open] summary::after {
+        content: "\2212";
+      }
+
+      details[open] summary {
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      details p {
+        color: var(--muted);
+        padding: 14px 0 18px;
+        margin: 0;
+      }
+
+      .site-footer {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      .site-footer strong { color: var(--navy-800); }
+
+      .site-footer a { color: var(--gold-600); }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wordmark"><span class="mono">PKI</span> Toolkit</div>
+      <nav class="toolnav" aria-label="Toolkit pages">
+        <a href="index.html">Home</a>
+        <a href="cert-csr-validator.html">Validator</a>
+        <a href="csr-decoder.html">CSR Decoder</a>
+        <a href="cert-decoder.html">Cert Decoder</a>
+        <a href="cert-chain-validator.html">Chain Validator</a>
+        <a href="csr-generator.html">CSR Generator</a>
+        <a href="cert-converter.html">Converter</a>
+        <a href="faq.html" class="active" aria-current="page">FAQ</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Frequently Asked Questions</span>
+        <h1>CSR, PKI, and private key security — in plain English</h1>
+        <p>
+          Straightforward answers for developers, administrators, and anyone else who needs to work with
+          certificates without getting lost in jargon.
+        </p>
+        <span class="privacy-note">This is a reference page only — no certificate or key data is processed here</span>
+      </section>
+
+      <nav class="toc" aria-label="FAQ sections">
+        <a href="#csr-faq">CSR questions</a>
+        <a href="#pki-faq">PKI &amp; certificate questions</a>
+        <a href="#key-faq">Private key security questions</a>
+      </nav>
+
+      <section class="faq-section" id="csr-faq">
+        <h2>CSR questions</h2>
+        <p>What a certificate signing request is, and how to handle it correctly.</p>
+        <div class="faq-list">
+          <details>
+            <summary>What is a Certificate Signing Request (CSR)?</summary>
+            <p>
+              A CSR is a block of encoded text generated alongside a private key. It contains the details
+              you want on your certificate — domain name, organization information, and your public key —
+              and is submitted to a Certificate Authority (CA) so it can issue a signed certificate.
+            </p>
+          </details>
+          <details>
+            <summary>Does a CSR contain my private key?</summary>
+            <p>
+              No. A CSR contains your public key, your identifying details, and a signature proving you
+              hold the matching private key. The private key itself never leaves the system where it was
+              generated and should never be shared with anyone, including your CA.
+            </p>
+          </details>
+          <details>
+            <summary>Can I reuse the same CSR for a certificate renewal?</summary>
+            <p>
+              You can, but it's best practice to generate a new key pair and CSR at renewal time.
+              Reusing the same key indefinitely increases the impact if that key is ever compromised.
+            </p>
+          </details>
+          <details>
+            <summary>What happens if I lose the private key that matches my CSR?</summary>
+            <p>
+              The CSR and any certificate issued from it become useless without the matching private key.
+              You'll need to generate a new key pair, a new CSR, and request a new certificate.
+            </p>
+          </details>
+          <details>
+            <summary>Why does my CSR need to match my certificate's public key?</summary>
+            <p>
+              A CA copies the public key from your CSR into the certificate it signs. If the keys don't
+              match, the certificate wasn't produced from that request — which is exactly what the
+              <a href="cert-csr-validator.html">Certificate &amp; CSR Validator</a> checks.
+            </p>
+          </details>
+          <details>
+            <summary>Is it safe to use a website to generate my CSR?</summary>
+            <p>
+              Be very cautious. Generating a CSR always means generating a private key first, and that
+              key must never leave the machine that created it. A website that "generates a CSR" for you
+              typically generates the private key too — on its own server, or in your browser where you
+              can't fully verify what happens to it — which means a key you should be the only one to
+              hold may have been retained somewhere else. Prefer generating CSRs locally with a trusted
+              tool such as OpenSSL; see the <a href="csr-generator.html">CSR Generator</a> page for a
+              command you can run on your own server instead.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="faq-section" id="pki-faq">
+        <h2>PKI &amp; certificate questions</h2>
+        <p>How trust is established and represented across certificates.</p>
+        <div class="faq-list">
+          <details>
+            <summary>What is PKI, in plain terms?</summary>
+            <p>
+              Public Key Infrastructure (PKI) is the set of roles, policies, and technology that lets
+              people trust digital certificates. A CA vouches for a certificate by signing it, and your
+              browser or device trusts that CA — directly or through a chain — to decide whether to
+              trust the certificate.
+            </p>
+          </details>
+          <details>
+            <summary>What's the difference between a root, intermediate, and leaf certificate?</summary>
+            <p>
+              A root CA certificate is self-signed and trusted directly by operating systems and browsers.
+              Root CAs sign intermediate certificates, which in turn sign the "leaf" certificate — the one
+              installed on a website or server. This chain lets CAs keep root keys offline and tightly
+              protected.
+            </p>
+          </details>
+          <details>
+            <summary>Why do certificates expire?</summary>
+            <p>
+              Expiration limits how long a compromised or outdated certificate can be trusted, and it
+              forces periodic re-verification of the certificate holder's identity and key material.
+            </p>
+          </details>
+          <details>
+            <summary>What is the difference between PEM and DER?</summary>
+            <p>
+              PEM is a Base64 text encoding wrapped in "-----BEGIN/END-----" headers, commonly used on
+              Linux, Apache, and nginx. DER is the underlying raw binary encoding, more common on Windows
+              and Java platforms. The <a href="cert-converter.html">Format Converter</a> converts between
+              the two.
+            </p>
+          </details>
+          <details>
+            <summary>What is a Subject Alternative Name (SAN)?</summary>
+            <p>
+              A SAN is an extension listing every hostname (or IP address) a certificate is valid for.
+              Modern browsers require the hostname you're visiting to appear in the SAN list — the older
+              "Common Name" field alone is no longer sufficient.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="faq-section" id="key-faq">
+        <h2>Private key security questions</h2>
+        <p>Practical guidance for keeping the one thing that must never be shared, safe.</p>
+        <div class="faq-list">
+          <details>
+            <summary>How should I store a private key?</summary>
+            <p>
+              Keep it on the system that needs it, restrict file permissions so only the relevant service
+              account can read it, and avoid emailing, uploading, or copying it anywhere it doesn't need
+              to be. For high-value keys, use a hardware security module (HSM) or a managed key vault.
+            </p>
+          </details>
+          <details>
+            <summary>Is it safe to paste a private key into a browser-based tool?</summary>
+            <p>
+              Treat any tool that asks for a private key with suspicion — including this one. The PKI
+              Toolkit never asks for a private key anywhere. Certificates and CSRs are safe to paste
+              because they contain only public information; private keys should never leave the machine
+              that generated them.
+            </p>
+          </details>
+          <details>
+            <summary>What should I do if I suspect a private key has been exposed?</summary>
+            <p>
+              Revoke the certificate associated with that key immediately, generate a new key pair and
+              CSR, and request a replacement certificate. Review how the exposure happened so it isn't
+              repeated.
+            </p>
+          </details>
+          <details>
+            <summary>Does key length or algorithm choice matter?</summary>
+            <p>
+              Yes. RSA keys should be at least 2048 bits — 3072 or higher for longer-lived trust — and
+              ECDSA keys on P-256 or a stronger curve are an efficient modern alternative. Avoid
+              algorithms or key sizes your CA or compliance policy has deprecated.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>PKI Toolkit</strong> is a free, vendor-neutral set of certificate tools. Everything runs
+      client-side in your browser — see the <a href="cert-csr-validator.html">Certificate &amp; CSR Validator</a>,
+      <a href="csr-decoder.html">CSR Decoder</a>, <a href="csr-generator.html">CSR Generator</a>, and
+      <a href="cert-converter.html">Format Converter</a> for the tools this FAQ refers to.</p>
+    </footer>
+  </body>
+</html>

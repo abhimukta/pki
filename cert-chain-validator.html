@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Certificate Chain Validator</title>
+    <meta name="description" content="Paste a leaf certificate plus its intermediate and root certificates to confirm the chain resolves and every signature verifies. Runs entirely in your browser." />
+    <style>
+      :root {
+        color-scheme: light;
+        --navy-900: #0a1a30;
+        --navy-800: #10233d;
+        --navy-700: #17325a;
+        --gold-600: #a97f22;
+        --gold-500: #c69a3b;
+        --gold-300: #e6cd8a;
+        --cream-100: #f6f1e4;
+        --cream-50: #fffdf8;
+        --ink: #16233a;
+        --muted: #5c6b80;
+        --border: #e2d9bf;
+        --border-soft: #dfe3ea;
+        --success: #2f6f4e;
+        --success-bg: #eef5ee;
+        --warning: #8a3a2b;
+        --warning-bg: #f8ece8;
+        --shadow: 0 20px 45px rgba(10, 26, 48, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--cream-100) 0%, var(--cream-50) 420px);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+      }
+
+      .topbar {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 16px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        border-bottom: 3px solid var(--gold-500);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .wordmark .mono {
+        color: var(--gold-300);
+        font-weight: 700;
+      }
+
+      .toolnav {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+
+      .toolnav a {
+        color: rgba(246, 241, 228, 0.78);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .toolnav a:hover, .toolnav a:focus-visible {
+        color: var(--cream-50);
+      }
+
+      .toolnav a.active {
+        color: var(--gold-300);
+        border-bottom-color: var(--gold-500);
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--navy-900), var(--navy-700) 75%);
+        color: var(--cream-50);
+        border-radius: 18px;
+        padding: 36px 38px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--navy-800);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-300);
+        margin-bottom: 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+        color: var(--cream-50);
+      }
+
+      .hero p {
+        margin: 0 0 18px;
+        max-width: 700px;
+        font-size: 1.02rem;
+        color: rgba(246, 241, 228, 0.88);
+      }
+
+      .privacy-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--navy-900);
+        background: var(--gold-300);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 22px;
+        margin-top: 26px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .panel {
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 26px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2, .panel h3 {
+        margin-top: 0;
+        color: var(--navy-900);
+      }
+
+      .panel > p { color: var(--muted); }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      label {
+        font-weight: 600;
+        color: var(--navy-800);
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      textarea, input[type="file"] {
+        width: 100%;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font: inherit;
+        background: #fbfaf5;
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 160px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+        font-size: 0.85rem;
+      }
+
+      textarea:focus, input[type="file"]:focus, button:focus-visible {
+        outline: 3px solid var(--gold-500);
+        outline-offset: 2px;
+      }
+
+      .helper {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 22px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+        font-family: inherit;
+      }
+
+      button:hover { transform: translateY(-1px); }
+
+      .primary {
+        background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+        color: var(--navy-900);
+        box-shadow: 0 10px 22px rgba(169, 127, 34, 0.3);
+      }
+
+      .secondary {
+        background: transparent;
+        color: var(--navy-800);
+        border: 1.5px solid var(--navy-700);
+      }
+
+      .result-card {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fbfaf5;
+      }
+
+      .status-match {
+        border-left: 4px solid var(--success);
+        background: var(--success-bg);
+      }
+
+      .status-mismatch {
+        border-left: 4px solid var(--warning);
+        background: var(--warning-bg);
+      }
+
+      .status-pending {
+        border-left: 4px solid var(--navy-700);
+        background: #f1f4f9;
+      }
+
+      .chain-list {
+        margin-top: 22px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .chain-node {
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 16px 18px;
+        background: #fbfaf5;
+        position: relative;
+      }
+
+      .chain-node + .chain-node {
+        margin-top: 2px;
+      }
+
+      .chain-node::before {
+        content: "\2193";
+        position: absolute;
+        top: -20px;
+        left: 24px;
+        color: var(--gold-600);
+        font-weight: 700;
+        font-size: 1rem;
+      }
+
+      .chain-node:first-child::before { content: ""; }
+
+      .chain-node-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .role-badge {
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+      }
+
+      .sig-badge {
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+
+      .sig-verified { background: var(--success-bg); color: var(--success); }
+      .sig-failed { background: var(--warning-bg); color: var(--warning); }
+      .sig-unknown { background: #eef1f6; color: var(--muted); }
+
+      .chain-node dl {
+        margin: 10px 0 0;
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 4px 12px;
+        font-size: 0.88rem;
+      }
+
+      .chain-node dt { color: var(--muted); }
+      .chain-node dd { margin: 0; color: var(--ink); }
+
+      .guide {
+        display: grid;
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .guide-card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .guide-card p { color: var(--muted); margin-bottom: 0; }
+
+      .pill {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .site-footer {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      .site-footer strong { color: var(--navy-800); }
+
+      [hidden] { display: none !important; }
+
+      @media (max-width: 860px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wordmark"><span class="mono">PKI</span> Toolkit</div>
+      <nav class="toolnav" aria-label="Toolkit pages">
+        <a href="index.html">Home</a>
+        <a href="cert-csr-validator.html">Validator</a>
+        <a href="csr-decoder.html">CSR Decoder</a>
+        <a href="cert-decoder.html">Cert Decoder</a>
+        <a href="cert-chain-validator.html" class="active" aria-current="page">Chain Validator</a>
+        <a href="csr-generator.html">CSR Generator</a>
+        <a href="cert-converter.html">Converter</a>
+        <a href="faq.html">FAQ</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Certificate Chain Validator</span>
+        <h1>Confirm your certificate resolves all the way up to a trusted root</h1>
+        <p>
+          Paste your leaf certificate plus its intermediate (and root) certificates. This tool orders
+          them into a chain, cryptographically verifies each signature against the next certificate up,
+          and confirms the chain terminates in a self-signed root.
+        </p>
+        <span class="privacy-note">Runs entirely in your browser — nothing you paste or upload is sent anywhere</span>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Leaf certificate</h2>
+          <p>The end-entity certificate — the one installed on your server.</p>
+          <div class="field">
+            <label for="leafInput">Leaf certificate (PEM)</label>
+            <textarea id="leafInput" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+            <label class="visually-hidden" for="leafFile">Upload leaf certificate file</label>
+            <input id="leafFile" type="file" accept=".pem,.crt,.cer,.txt" />
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Intermediate &amp; root certificates</h2>
+          <p>Paste one or more PEM certificates, one after another — order doesn't matter.</p>
+          <div class="field">
+            <label for="chainInput">Intermediate / root certificates (PEM)</label>
+            <textarea id="chainInput" placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----&#10;-----BEGIN CERTIFICATE-----&#10;..."></textarea>
+            <div class="helper">PEM only. If you have a DER file, convert it first with the <a href="cert-converter.html">Format Converter</a>.</div>
+            <label class="visually-hidden" for="chainFile">Upload chain bundle file</label>
+            <input id="chainFile" type="file" accept=".pem,.crt,.cer,.txt" />
+          </div>
+        </article>
+      </section>
+
+      <div class="actions">
+        <button class="primary" id="validateBtn" type="button">Validate chain</button>
+        <button class="secondary" id="clearBtn" type="button">Clear</button>
+      </div>
+
+      <div id="results" class="result-card status-pending" role="status" aria-live="polite">
+        <strong>Ready to check</strong>
+        <div>Paste a leaf certificate and its intermediate/root certificates, then press Validate chain.</div>
+      </div>
+
+      <div id="chainList" class="chain-list"></div>
+
+      <section class="guide">
+        <div class="guide-card">
+          <span class="pill">What "verified" means here</span>
+          <h3>Name match vs. cryptographic proof</h3>
+          <p>
+            Matching a certificate's issuer name to another certificate's subject name only tells you the
+            names line up — anyone can create a certificate with a matching name. This tool goes further
+            and cryptographically verifies that each certificate's signature was actually produced by the
+            next certificate's public key.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">What this doesn't check</span>
+          <h3>Trust is still your call</h3>
+          <p>
+            This tool confirms the chain is structurally and cryptographically sound. It does not check
+            revocation status (CRL/OCSP) or whether the root certificate is actually trusted by any
+            particular browser or operating system — that trust decision happens outside this page.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">Before this step</span>
+          <h3>Decode certificates individually first</h3>
+          <p>
+            If a certificate in your chain looks wrong, use the <a href="cert-decoder.html">Certificate
+            Decoder</a> to inspect it on its own — subject, issuer, validity, and extensions — before
+            troubleshooting the whole chain.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>PKI Toolkit</strong> is a free, vendor-neutral set of certificate tools. Everything runs
+      client-side in your browser — certificates you paste or upload are never sent to a server or
+      stored anywhere.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.0/jsrsasign-all-min.js" integrity="sha384-PH1MJUYuGL/GVZaPZn6vyHOpJdMDVXnRBUkCAIxJZ2f6dfx9bYthCCt9Rw3TImwq" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      const leafInput = document.getElementById('leafInput');
+      const leafFile = document.getElementById('leafFile');
+      const chainInput = document.getElementById('chainInput');
+      const chainFile = document.getElementById('chainFile');
+      const results = document.getElementById('results');
+      const chainList = document.getElementById('chainList');
+
+      function setPending(message) {
+        results.className = 'result-card status-pending';
+        results.innerHTML = `<strong>Checking…</strong><div>${message}</div>`;
+      }
+
+      function setOk(message) {
+        results.className = 'result-card status-match';
+        results.innerHTML = `<strong>Chain verified</strong><div>${message}</div>`;
+      }
+
+      function setWarn(headline, message) {
+        results.className = 'result-card status-mismatch';
+        results.innerHTML = `<strong>${escapeHtml(headline)}</strong><div>${message}</div>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (ch) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+      }
+
+      function formatLabel(value) {
+        const text = value && String(value).trim() ? String(value).trim() : 'Not available';
+        return escapeHtml(text);
+      }
+
+      function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsText(file);
+        });
+      }
+
+      function parseAsn1Time(raw) {
+        const s = String(raw).replace('Z', '');
+        let year, rest;
+        if (s.length === 12) {
+          const yy = parseInt(s.slice(0, 2), 10);
+          year = yy < 50 ? 2000 + yy : 1900 + yy;
+          rest = s.slice(2);
+        } else {
+          year = parseInt(s.slice(0, 4), 10);
+          rest = s.slice(4);
+        }
+        const month = parseInt(rest.slice(0, 2), 10) - 1;
+        const day = parseInt(rest.slice(2, 4), 10);
+        const hour = parseInt(rest.slice(4, 6), 10);
+        const min = parseInt(rest.slice(6, 8), 10);
+        const sec = parseInt(rest.slice(8, 10), 10);
+        return new Date(Date.UTC(year, month, day, hour, min, sec));
+      }
+
+      function formatDate(d) {
+        return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+      }
+
+      function extractPemCerts(text) {
+        const matches = text.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g);
+        return matches || [];
+      }
+
+      function parseCerts(pemBlocks) {
+        return pemBlocks.map((block) => {
+          const cert = new X509();
+          cert.readCertPEM(block);
+          return cert;
+        });
+      }
+
+      function buildChain(leafCert, poolCerts) {
+        const path = [];
+        let current = leafCert;
+        const remaining = poolCerts.slice();
+        const maxHops = 12;
+        let brokenReason = null;
+        let hopped = false;
+
+        for (let i = 0; i < maxHops; i++) {
+          const subj = current.getSubjectString();
+          const iss = current.getIssuerString();
+          const entry = { cert: current, subject: subj, issuer: iss, selfSigned: false };
+
+          if (subj === iss) {
+            try {
+              entry.signatureVerified = current.verifySignature(current.getPublicKey());
+            } catch (error) {
+              entry.signatureVerified = false;
+            }
+            entry.selfSigned = true;
+            path.push(entry);
+            hopped = true;
+            break;
+          }
+
+          const idx = remaining.findIndex((c) => c.getSubjectString() === iss);
+          if (idx === -1) {
+            entry.signatureVerified = null;
+            path.push(entry);
+            brokenReason = `Couldn't find a provided certificate whose subject matches the issuer "${iss}".`;
+            hopped = true;
+            break;
+          }
+
+          const parent = remaining[idx];
+          try {
+            entry.signatureVerified = current.verifySignature(parent.getPublicKey());
+          } catch (error) {
+            entry.signatureVerified = false;
+          }
+          path.push(entry);
+          remaining.splice(idx, 1);
+          current = parent;
+        }
+
+        if (!hopped) {
+          brokenReason = 'The chain is more than 12 certificates deep, or two certificates reference each other in a loop. Stopped to avoid an infinite loop.';
+        }
+
+        return { path, brokenReason, unused: remaining };
+      }
+
+      function roleLabel(entry, index, total) {
+        if (entry.selfSigned) return 'Root CA (self-signed)';
+        if (index === 0) return 'Leaf (end-entity)';
+        return 'Intermediate CA';
+      }
+
+      function sigBadge(entry) {
+        if (entry.signatureVerified === true) return '<span class="sig-badge sig-verified">Signature verified</span>';
+        if (entry.signatureVerified === false) return '<span class="sig-badge sig-failed">Signature does not verify</span>';
+        return '<span class="sig-badge sig-unknown">Issuer not provided</span>';
+      }
+
+      function renderChain(chainResult) {
+        const { path } = chainResult;
+        chainList.innerHTML = path.map((entry, index) => {
+          const cert = entry.cert;
+          let validityLine = 'Not available';
+          try {
+            const notBefore = parseAsn1Time(cert.getNotBefore());
+            const notAfter = parseAsn1Time(cert.getNotAfter());
+            const now = new Date();
+            const expired = now > notAfter;
+            const notYet = now < notBefore;
+            const status = notYet ? ' (not yet valid)' : expired ? ' (expired)' : '';
+            validityLine = `${formatDate(notBefore)} &rarr; ${formatDate(notAfter)}${status}`;
+          } catch (error) {
+            validityLine = 'Not available';
+          }
+
+          return `
+            <div class="chain-node">
+              <div class="chain-node-head">
+                <span class="role-badge">${roleLabel(entry, index, path.length)}</span>
+                ${sigBadge(entry)}
+              </div>
+              <dl>
+                <dt>Subject</dt><dd>${formatLabel(entry.subject)}</dd>
+                <dt>Issuer</dt><dd>${formatLabel(entry.issuer)}</dd>
+                <dt>Serial</dt><dd>${formatLabel(cert.getSerialNumberHex())}</dd>
+                <dt>Validity</dt><dd>${validityLine}</dd>
+              </dl>
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function validate() {
+        chainList.innerHTML = '';
+        setPending('Parsing certificates.');
+
+        try {
+          let leafPem;
+          if (leafFile.files[0]) {
+            leafPem = await readFileAsText(leafFile.files[0]);
+          } else {
+            leafPem = leafInput.value.trim();
+          }
+          if (!leafPem || !leafPem.includes('-----BEGIN')) {
+            throw new Error('Please provide a leaf certificate in PEM format, in the text box or by uploading a file.');
+          }
+
+          let chainText;
+          if (chainFile.files[0]) {
+            chainText = await readFileAsText(chainFile.files[0]);
+          } else {
+            chainText = chainInput.value.trim();
+          }
+          const chainBlocks = extractPemCerts(chainText);
+          if (!chainBlocks.length) {
+            throw new Error('Please provide at least one intermediate or root certificate in PEM format.');
+          }
+
+          const leafCert = new X509();
+          leafCert.readCertPEM(leafPem);
+          const poolCerts = parseCerts(chainBlocks);
+
+          const chainResult = buildChain(leafCert, poolCerts);
+          renderChain(chainResult);
+
+          const allVerified = chainResult.path.every((entry) => entry.signatureVerified === true);
+          const reachedRoot = chainResult.path.length > 0 && chainResult.path[chainResult.path.length - 1].selfSigned;
+          const now = new Date();
+          const expiredEntries = chainResult.path.filter((entry) => {
+            try {
+              const notAfter = parseAsn1Time(entry.cert.getNotAfter());
+              const notBefore = parseAsn1Time(entry.cert.getNotBefore());
+              return now > notAfter || now < notBefore;
+            } catch (error) {
+              return false;
+            }
+          });
+
+          const notes = [];
+          if (expiredEntries.length) {
+            notes.push(`${expiredEntries.length} certificate${expiredEntries.length === 1 ? '' : 's'} in this chain ${expiredEntries.length === 1 ? 'is' : 'are'} outside its validity window.`);
+          }
+          if (chainResult.unused.length) {
+            notes.push(`${chainResult.unused.length} provided certificate${chainResult.unused.length === 1 ? '' : 's'} were not used in this chain (unrelated or duplicate).`);
+          }
+
+          if (reachedRoot && allVerified && !chainResult.brokenReason) {
+            setOk(`Every signature verified, and the chain resolves to a self-signed root in ${chainResult.path.length} certificate${chainResult.path.length === 1 ? '' : 's'}. ${notes.join(' ')}`.trim());
+          } else if (chainResult.brokenReason) {
+            setWarn('Chain is incomplete', `${escapeHtml(chainResult.brokenReason)} ${notes.join(' ')}`.trim());
+          } else {
+            setWarn('Chain resolves by name, but a signature failed', `At least one certificate's signature could not be verified against the next certificate up. This chain should not be trusted as-is. ${notes.join(' ')}`.trim());
+          }
+        } catch (error) {
+          setWarn('Could not validate this chain', escapeHtml(error.message || 'Please confirm all certificates are valid PEM.'));
+        }
+      }
+
+      document.getElementById('validateBtn').addEventListener('click', validate);
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        leafInput.value = '';
+        leafFile.value = '';
+        chainInput.value = '';
+        chainFile.value = '';
+        chainList.innerHTML = '';
+        results.className = 'result-card status-pending';
+        results.innerHTML = '<strong>Ready to check</strong><div>Paste a leaf certificate and its intermediate/root certificates, then press Validate chain.</div>';
+      });
+    </script>
+  </body>
+</html>

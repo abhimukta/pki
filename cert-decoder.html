@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Certificate Decoder</title>
+    <meta name="description" content="Paste or upload a TLS certificate to see its subject, issuer, validity window, expiry countdown, SANs, key usage, and fingerprint. Runs entirely in your browser." />
+    <style>
+      :root {
+        color-scheme: light;
+        --navy-900: #0a1a30;
+        --navy-800: #10233d;
+        --navy-700: #17325a;
+        --gold-600: #a97f22;
+        --gold-500: #c69a3b;
+        --gold-300: #e6cd8a;
+        --cream-100: #f6f1e4;
+        --cream-50: #fffdf8;
+        --ink: #16233a;
+        --muted: #5c6b80;
+        --border: #e2d9bf;
+        --border-soft: #dfe3ea;
+        --success: #2f6f4e;
+        --success-bg: #eef5ee;
+        --warning: #8a3a2b;
+        --warning-bg: #f8ece8;
+        --shadow: 0 20px 45px rgba(10, 26, 48, 0.16);
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--cream-100) 0%, var(--cream-50) 420px);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+
+      h1, h2, h3 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+      }
+
+      .topbar {
+        background: var(--navy-900);
+        color: var(--cream-50);
+        padding: 16px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        border-bottom: 3px solid var(--gold-500);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 1.25rem;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+
+      .wordmark .mono {
+        color: var(--gold-300);
+        font-weight: 700;
+      }
+
+      .toolnav {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+
+      .toolnav a {
+        color: rgba(246, 241, 228, 0.78);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding-bottom: 4px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .toolnav a:hover, .toolnav a:focus-visible {
+        color: var(--cream-50);
+      }
+
+      .toolnav a.active {
+        color: var(--gold-300);
+        border-bottom-color: var(--gold-500);
+      }
+
+      .page {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, var(--navy-900), var(--navy-700) 75%);
+        color: var(--cream-50);
+        border-radius: 18px;
+        padding: 36px 38px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--navy-800);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--gold-300);
+        margin-bottom: 10px;
+      }
+
+      .hero h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.7rem, 2.8vw, 2.3rem);
+        color: var(--cream-50);
+      }
+
+      .hero p {
+        margin: 0 0 18px;
+        max-width: 700px;
+        font-size: 1.02rem;
+        color: rgba(246, 241, 228, 0.88);
+      }
+
+      .privacy-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--navy-900);
+        background: var(--gold-300);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 22px;
+        margin-top: 26px;
+      }
+
+      .panel {
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 26px;
+        box-shadow: var(--shadow);
+      }
+
+      .panel h2, .panel h3 {
+        margin-top: 0;
+        color: var(--navy-900);
+      }
+
+      .panel > p { color: var(--muted); }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      label {
+        font-weight: 600;
+        color: var(--navy-800);
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      textarea, input[type="file"] {
+        width: 100%;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font: inherit;
+        background: #fbfaf5;
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 200px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+        font-size: 0.85rem;
+      }
+
+      textarea:focus, input[type="file"]:focus, button:focus-visible {
+        outline: 3px solid var(--gold-500);
+        outline-offset: 2px;
+      }
+
+      .helper {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 22px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+        font-family: inherit;
+      }
+
+      button:hover { transform: translateY(-1px); }
+
+      .primary {
+        background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+        color: var(--navy-900);
+        box-shadow: 0 10px 22px rgba(169, 127, 34, 0.3);
+      }
+
+      .secondary {
+        background: transparent;
+        color: var(--navy-800);
+        border: 1.5px solid var(--navy-700);
+      }
+
+      .result-card {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fbfaf5;
+      }
+
+      .status-match {
+        border-left: 4px solid var(--success);
+        background: var(--success-bg);
+      }
+
+      .status-mismatch {
+        border-left: 4px solid var(--warning);
+        background: var(--warning-bg);
+      }
+
+      .status-pending {
+        border-left: 4px solid var(--navy-700);
+        background: #f1f4f9;
+      }
+
+      .detail-grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 16px;
+      }
+
+      .detail-card {
+        background: #fbfaf5;
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 0.92rem;
+      }
+
+      .detail-card strong { display: block; margin-bottom: 6px; color: var(--navy-800); }
+      .detail-card div + div { margin-top: 6px; }
+      .detail-card.wide { grid-column: 1 / -1; }
+
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .tag {
+        background: rgba(23, 50, 90, 0.08);
+        color: var(--navy-800);
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 0.82rem;
+        font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+      }
+
+      .guide {
+        display: grid;
+        gap: 16px;
+        margin-top: 24px;
+      }
+
+      .guide-card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        background: var(--cream-50);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
+
+      .guide-card p { color: var(--muted); margin-bottom: 0; }
+
+      .pill {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(169, 127, 34, 0.12);
+        color: var(--gold-600);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .site-footer {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      .site-footer strong { color: var(--navy-800); }
+
+      @media (max-width: 820px) {
+        .detail-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wordmark"><span class="mono">PKI</span> Toolkit</div>
+      <nav class="toolnav" aria-label="Toolkit pages">
+        <a href="index.html">Home</a>
+        <a href="cert-csr-validator.html">Validator</a>
+        <a href="csr-decoder.html">CSR Decoder</a>
+        <a href="cert-decoder.html" class="active" aria-current="page">Cert Decoder</a>
+        <a href="cert-chain-validator.html">Chain Validator</a>
+        <a href="csr-generator.html">CSR Generator</a>
+        <a href="cert-converter.html">Converter</a>
+        <a href="faq.html">FAQ</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <span class="eyebrow">Certificate Decoder</span>
+        <h1>Decode a certificate and see exactly what it says</h1>
+        <p>
+          Paste or upload an issued TLS certificate to check its subject, issuer, validity window and
+          expiry countdown, Subject Alternative Names, key usage, and fingerprint — at a glance.
+        </p>
+        <span class="privacy-note">Runs entirely in your browser — nothing you paste or upload is sent anywhere</span>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Decode a certificate</h2>
+          <p>
+            A certificate is public information by design, so it's always safe to paste or upload one here.
+          </p>
+
+          <div class="field">
+            <label for="certInput">TLS certificate</label>
+            <textarea id="certInput" placeholder="-----BEGIN CERTIFICATE-----"></textarea>
+            <div class="helper">Paste PEM text, or upload a PEM (.pem/.crt/.cer) or binary DER (.der/.cer) file below.</div>
+            <label class="visually-hidden" for="certFile">Upload certificate file</label>
+            <input id="certFile" type="file" accept=".pem,.crt,.cer,.der,.txt" />
+          </div>
+
+          <div class="actions">
+            <button class="primary" id="decodeBtn" type="button">Decode</button>
+            <button class="secondary" id="clearBtn" type="button">Clear</button>
+          </div>
+
+          <div id="results" class="result-card status-pending" role="status" aria-live="polite">
+            <strong>Ready to check</strong>
+            <div>Paste or upload a certificate and press Decode to see its contents.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h3>What you'll see</h3>
+          <p>
+            Every field below is read directly from the certificate — nothing is checked against a CA,
+            a revocation list, or a live server.
+          </p>
+
+          <div class="detail-grid">
+            <div class="detail-card">
+              <strong>Subject</strong>
+              <div id="certSubject">No certificate decoded yet.</div>
+            </div>
+            <div class="detail-card">
+              <strong>Issuer</strong>
+              <div id="certIssuer">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>Serial number</strong>
+              <div id="certSerial">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>Validity</strong>
+              <div id="certValidity">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>Public key</strong>
+              <div id="certKey">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>Signature algorithm</strong>
+              <div id="certSigAlg">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>SHA-256 fingerprint</strong>
+              <div id="certFingerprint">—</div>
+            </div>
+            <div class="detail-card">
+              <strong>Certificate Authority?</strong>
+              <div id="certBasicConstraints">—</div>
+            </div>
+            <div class="detail-card wide">
+              <strong>Subject Alternative Names</strong>
+              <div id="certSans">—</div>
+            </div>
+            <div class="detail-card wide">
+              <strong>Key usage</strong>
+              <div id="certKeyUsage">—</div>
+            </div>
+            <div class="detail-card wide">
+              <strong>Extended key usage</strong>
+              <div id="certExtKeyUsage">—</div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="guide">
+        <div class="guide-card">
+          <span class="pill">For non-technical readers</span>
+          <h3>What "expiry" actually means here</h3>
+          <p>
+            A certificate is only trusted between its "valid from" and "valid to" dates. Past the expiry
+            date, browsers and clients will reject it outright — this tool flags that countdown so you
+            can renew before it becomes an outage.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">Why key usage matters</span>
+          <h3>Not every certificate can do every job</h3>
+          <p>
+            Key Usage and Extended Key Usage restrict what a certificate is allowed to be used for — for
+            example, whether it can authenticate a server, a client, or sign other certificates. A
+            certificate missing "Server Authentication" won't work for TLS even if everything else looks fine.
+          </p>
+        </div>
+
+        <div class="guide-card">
+          <span class="pill">Next step</span>
+          <h3>Check the whole chain, not just one certificate</h3>
+          <p>
+            A single certificate is only half the picture. Use the
+            <a href="cert-chain-validator.html">Certificate Chain Validator</a> to confirm this
+            certificate resolves up to a trusted root through its intermediates.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><strong>PKI Toolkit</strong> is a free, vendor-neutral set of certificate tools. Everything runs
+      client-side in your browser — certificates you paste or upload are never sent to a server or
+      stored anywhere.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.0/jsrsasign-all-min.js" integrity="sha384-PH1MJUYuGL/GVZaPZn6vyHOpJdMDVXnRBUkCAIxJZ2f6dfx9bYthCCt9Rw3TImwq" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      const certInput = document.getElementById('certInput');
+      const certFile = document.getElementById('certFile');
+      const results = document.getElementById('results');
+      const certSubject = document.getElementById('certSubject');
+      const certIssuer = document.getElementById('certIssuer');
+      const certSerial = document.getElementById('certSerial');
+      const certValidity = document.getElementById('certValidity');
+      const certKey = document.getElementById('certKey');
+      const certSigAlg = document.getElementById('certSigAlg');
+      const certFingerprint = document.getElementById('certFingerprint');
+      const certBasicConstraints = document.getElementById('certBasicConstraints');
+      const certSans = document.getElementById('certSans');
+      const certKeyUsage = document.getElementById('certKeyUsage');
+      const certExtKeyUsage = document.getElementById('certExtKeyUsage');
+
+      const emptyFields = {
+        certIssuer: '—', certSerial: '—', certValidity: '—', certKey: '—', certSigAlg: '—',
+        certFingerprint: '—', certBasicConstraints: '—', certSans: '—', certKeyUsage: '—', certExtKeyUsage: '—'
+      };
+
+      function setPending(message) {
+        results.className = 'result-card status-pending';
+        results.innerHTML = `<strong>Checking…</strong><div>${message}</div>`;
+      }
+
+      function setOk(message) {
+        results.className = 'result-card status-match';
+        results.innerHTML = `<strong>Certificate decoded</strong><div>${message}</div>`;
+      }
+
+      function setWarn(message) {
+        results.className = 'result-card status-mismatch';
+        results.innerHTML = `<strong>Certificate decoded — needs attention</strong><div>${message}</div>`;
+      }
+
+      function setError(message) {
+        results.className = 'result-card status-mismatch';
+        results.innerHTML = `<strong>Could not decode this certificate</strong><div>${message}</div>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (ch) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+      }
+
+      function formatLabel(value) {
+        const text = value && String(value).trim() ? String(value).trim() : 'Not available';
+        return escapeHtml(text);
+      }
+
+      function readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      function bufferToHex(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let hex = '';
+        for (let i = 0; i < bytes.length; i++) {
+          hex += bytes[i].toString(16).padStart(2, '0');
+        }
+        return hex;
+      }
+
+      function parseAsn1Time(raw) {
+        const s = String(raw).replace('Z', '');
+        let year, rest;
+        if (s.length === 12) {
+          const yy = parseInt(s.slice(0, 2), 10);
+          year = yy < 50 ? 2000 + yy : 1900 + yy;
+          rest = s.slice(2);
+        } else {
+          year = parseInt(s.slice(0, 4), 10);
+          rest = s.slice(4);
+        }
+        const month = parseInt(rest.slice(0, 2), 10) - 1;
+        const day = parseInt(rest.slice(2, 4), 10);
+        const hour = parseInt(rest.slice(4, 6), 10);
+        const min = parseInt(rest.slice(6, 8), 10);
+        const sec = parseInt(rest.slice(8, 10), 10);
+        return new Date(Date.UTC(year, month, day, hour, min, sec));
+      }
+
+      function formatDate(d) {
+        return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+      }
+
+      function camelToTitle(s) {
+        const spaced = String(s).replace(/([A-Z])/g, ' $1').trim();
+        return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+      }
+
+      function describeKeyFromObj(keyObj) {
+        try {
+          if (keyObj.curveName) return `EC (${keyObj.curveName})`;
+          if (keyObj.n) return `RSA (${keyObj.n.bitLength()} bit)`;
+          return 'Public key available';
+        } catch (error) {
+          return 'Public key available';
+        }
+      }
+
+      function renderTagList(container, items) {
+        if (!items || !items.length) {
+          container.innerHTML = 'None present.';
+          return;
+        }
+        container.innerHTML = `<div class="tag-list">${items.map((item) => `<span class="tag">${escapeHtml(item)}</span>`).join('')}</div>`;
+      }
+
+      async function loadCertificate() {
+        if (certFile.files[0]) {
+          const buffer = await readFileAsArrayBuffer(certFile.files[0]);
+          const text = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+          const cert = new X509();
+          if (text.includes('-----BEGIN')) {
+            cert.readCertPEM(text);
+          } else {
+            cert.readCertHex(bufferToHex(buffer));
+          }
+          return cert;
+        }
+
+        const pasted = certInput.value.trim();
+        if (!pasted) {
+          throw new Error('Please provide a certificate in the text box or by uploading a file.');
+        }
+        if (!pasted.includes('-----BEGIN')) {
+          throw new Error('Pasted text must be a PEM certificate. Use the file upload for binary DER files.');
+        }
+        const cert = new X509();
+        cert.readCertPEM(pasted);
+        return cert;
+      }
+
+      function resetFields() {
+        Object.entries(emptyFields).forEach(([id, value]) => {
+          document.getElementById(id).innerHTML = value;
+        });
+      }
+
+      async function decode() {
+        setPending('Parsing the certificate.');
+
+        try {
+          const cert = await loadCertificate();
+
+          certSubject.innerHTML = formatLabel(cert.getSubjectString());
+          certIssuer.innerHTML = formatLabel(cert.getIssuerString());
+          certSerial.innerHTML = formatLabel(cert.getSerialNumberHex());
+          certSigAlg.innerHTML = formatLabel(cert.getSignatureAlgorithmName());
+
+          const keyObj = cert.getPublicKey();
+          certKey.innerHTML = formatLabel(describeKeyFromObj(keyObj));
+
+          const fingerprintHex = KJUR.crypto.Util.hashHex(cert.hex, 'sha256');
+          certFingerprint.innerHTML = formatLabel(fingerprintHex.match(/.{1,2}/g).join(':').toUpperCase());
+
+          const notBefore = parseAsn1Time(cert.getNotBefore());
+          const notAfter = parseAsn1Time(cert.getNotAfter());
+          const now = new Date();
+          const msPerDay = 86400000;
+          let expiryOk = true;
+          let expiryNote;
+
+          if (now < notBefore) {
+            expiryOk = false;
+            const days = Math.ceil((notBefore - now) / msPerDay);
+            expiryNote = `Not yet valid — becomes valid in ${days} day${days === 1 ? '' : 's'}.`;
+          } else if (now > notAfter) {
+            expiryOk = false;
+            const days = Math.floor((now - notAfter) / msPerDay);
+            expiryNote = `Expired ${days} day${days === 1 ? '' : 's'} ago.`;
+          } else {
+            const days = Math.floor((notAfter - now) / msPerDay);
+            expiryNote = `Valid now — expires in ${days} day${days === 1 ? '' : 's'}.`;
+            if (days <= 30) expiryOk = false;
+          }
+
+          certValidity.innerHTML = `${formatLabel(formatDate(notBefore))} &rarr; ${formatLabel(formatDate(notAfter))}<br>${escapeHtml(expiryNote)}`;
+
+          const extensions = cert.getExtParamArray ? cert.getExtParamArray() : [];
+
+          const sanExt = extensions.find((ext) => ext.extname === 'subjectAltName');
+          const sanValues = sanExt && Array.isArray(sanExt.array)
+            ? sanExt.array.map((entry) => Array.isArray(entry) ? `${entry[0]}: ${entry[1]}` : String(entry))
+            : [];
+          renderTagList(certSans, sanValues);
+
+          const keyUsageExt = extensions.find((ext) => ext.extname === 'keyUsage');
+          const keyUsageValues = keyUsageExt && Array.isArray(keyUsageExt.names)
+            ? keyUsageExt.names.map(camelToTitle)
+            : [];
+          renderTagList(certKeyUsage, keyUsageValues);
+
+          const extKeyUsageExt = extensions.find((ext) => ext.extname === 'extKeyUsage');
+          const extKeyUsageValues = extKeyUsageExt && Array.isArray(extKeyUsageExt.array)
+            ? extKeyUsageExt.array.map(camelToTitle)
+            : [];
+          renderTagList(certExtKeyUsage, extKeyUsageValues);
+
+          const bcExt = extensions.find((ext) => ext.extname === 'basicConstraints');
+          certBasicConstraints.innerHTML = bcExt && bcExt.cA
+            ? 'Yes — this certificate can sign other certificates.'
+            : 'No — this is an end-entity certificate.';
+
+          if (!expiryOk) {
+            setWarn(expiryNote);
+          } else {
+            setOk('This certificate is currently valid. Review the fields below before relying on it.');
+          }
+        } catch (error) {
+          resetFields();
+          setError(escapeHtml(error.message || 'Please confirm the certificate content is valid.'));
+        }
+      }
+
+      document.getElementById('decodeBtn').addEventListener('click', decode);
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        certInput.value = '';
+        certFile.value = '';
+        certSubject.innerHTML = 'No certificate decoded yet.';
+        resetFields();
+        results.className = 'result-card status-pending';
+        results.innerHTML = '<strong>Ready to check</strong><div>Paste or upload a certificate and press Decode to see its contents.</div>';
+      });
+    </script>
+  </body>
+</html>
